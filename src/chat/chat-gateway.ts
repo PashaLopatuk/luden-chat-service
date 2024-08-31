@@ -17,6 +17,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer() server: Server
 
   handleConnection(client: Socket) {
+    console.log(client.request)
+
     client.broadcast.emit('user-join', {
       message: `New user joined the chat: ${client.id}`
     })

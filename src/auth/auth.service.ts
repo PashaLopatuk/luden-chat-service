@@ -22,19 +22,19 @@ export class AuthService {
   }
 
   async signup(signupData: SignupDTO) {
-    const emailInUse = await this.UserModel.findOne({
-      email: signupData.email
+    const loginInUse = await this.UserModel.findOne({
+      login: signupData.login
     })
 
-    if (!!emailInUse) {
-      throw new BadRequestException('Email is already in use')
+    if (!!loginInUse) {
+      throw new BadRequestException('Login is already in use')
     }
 
     const hashedPassword = await bcrypt.hash(signupData.password, 10)
 
     const user = await this.UserModel.create({
       name: signupData.name,
-      email: signupData.email,
+      login: signupData.login,
       password: hashedPassword
     })
 
@@ -52,7 +52,7 @@ export class AuthService {
 
 
   async login(credentials: LoginDTO) {
-    const user = await this.UserModel.findOne({email: credentials.email})
+    const user = await this.UserModel.findOne({login: credentials.login})
 
     if (!user) {
       throw new UnauthorizedException('User not found')

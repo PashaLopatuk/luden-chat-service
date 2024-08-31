@@ -1,8 +1,13 @@
+import * as process from "node:process";
+
 export default () => ({
   jwt: {
-    secret: '123'
+    secret: process.env.JWT_SECRET
   },
-  database: {
-    connectionString: 'mongodb://localhost:27017/auth-db'
+  mongoDB: {
+    connectionString: process.env.MONGODB_CONNECTION_URL
+  },
+  postgresDB: {
+    password: process.env.POSTGRES_PASSWORD
   }
 })

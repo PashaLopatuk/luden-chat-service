@@ -4,8 +4,8 @@ export class SignupDTO {
   @IsString()
   name: string
 
-  @IsEmail()
-  email: string
+  @IsString()
+  login: string
 
   @IsString()
   @MinLength(6)

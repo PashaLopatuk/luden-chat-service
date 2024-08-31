@@ -7,6 +7,9 @@ import {MongooseModule} from "@nestjs/mongoose";
 import {JwtModule} from "@nestjs/jwt";
 import {ConfigModule, ConfigService} from "@nestjs/config";
 import config from "./config/config";
+import {ChatController} from "./chat/chat.controller";
+import {ChatService} from "./chat/chat.service";
+import {DatabaseModule} from "./database/database.module";
 
 @Module({
   imports: [
@@ -18,7 +21,7 @@ import config from "./config/config";
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: async config => ({
-        uri: config.get('database.connectionString')
+        uri: config.get('mongoDB.connectionString')
       }),
       inject: [ConfigService],
     }),
