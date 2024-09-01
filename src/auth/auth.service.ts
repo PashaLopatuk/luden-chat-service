@@ -1,50 +1,57 @@
-import {BadRequestException, Injectable, UnauthorizedException} from '@nestjs/common';
+import {BadRequestException, Inject, Injectable, UnauthorizedException} from '@nestjs/common';
 import {InjectModel} from "@nestjs/mongoose";
-import {User} from "./schemas/user.schema";
 import {Model} from "mongoose";
 import {SignupDTO} from "./dto/signup.dto";
 import * as bcrypt from 'bcrypt'
 import {LoginDTO} from "./dto/login.dto";
 import {JwtService} from "@nestjs/jwt";
 import {v4} from 'uuid'
-import {RefreshToken} from "./schemas/refresh-token.schema";
 import {RefreshTokensDTO} from "./dto/refresh-tokens.dto";
+import {Repository, MoreThanOrEqual} from "typeorm";
+import {Chat} from "../entities/chat.entity";
+import {UserTokens} from "../entities/user-tokens.entity";
+import {User} from "../entities/user.entity";
 
 
 @Injectable()
 export class AuthService {
   constructor(
-    @InjectModel(User.name) private UserModel: Model<User>,
-    @InjectModel(RefreshToken.name) private RefreshTokenModel: Model<RefreshToken>,
+    @Inject('USER_REPOSITORY') private userRepository: Repository<User>,
+    @Inject('USER_TOKENS_REPOSITORY') private userTokensRepository: Repository<UserTokens>,
     private jwtService: JwtService,
   ) {
 
   }
 
   async signup(signupData: SignupDTO) {
-    const loginInUse = await this.UserModel.findOne({
-      login: signupData.login
+    const loginInUse = await this.userRepository.findOne({
+      where: {
+        login: signupData.login
+      }
     })
 
-    if (!!loginInUse) {
+    if (loginInUse) {
       throw new BadRequestException('Login is already in use')
     }
 
     const hashedPassword = await bcrypt.hash(signupData.password, 10)
 
-    const user = await this.UserModel.create({
+
+    const user = this.userRepository.create({
       name: signupData.name,
       login: signupData.login,
       password: hashedPassword
     })
 
+    const savedUser = await this.userRepository.save(user)
+
     const tokens = await this.generateUserTokens({
-      userId: user._id
+      userId: savedUser.userId
     })
 
     await this.storeRefreshToken({
       token: tokens.refreshToken,
-      userId: user._id
+      user: savedUser
     })
 
     return tokens
@@ -52,7 +59,9 @@ export class AuthService {
 
 
   async login(credentials: LoginDTO) {
-    const user = await this.UserModel.findOne({login: credentials.login})
+    const user = await this.userRepository.findOneBy({
+      login: credentials.login
+    })
 
     if (!user) {
       throw new UnauthorizedException('User not found')
@@ -65,19 +74,19 @@ export class AuthService {
     }
 
     const tokens = await this.generateUserTokens({
-      userId: user._id
+      userId: user.userId
     })
 
     await this.storeRefreshToken({
       token: tokens.refreshToken,
-      userId: user._id
+      user: user
     })
 
     return tokens
   }
 
   async generateUserTokens({userId}: { userId }) {
-    const accessToken = this.jwtService.sign({userId}, {expiresIn: '1h'})
+    const accessToken = this.jwtService.sign({userId}, {expiresIn: '8h'})
 
     const refreshToken = v4()
 
@@ -87,32 +96,34 @@ export class AuthService {
     }
   }
 
-  async storeRefreshToken({token, userId}: {
+  async storeRefreshToken({token, user}: {
     token: string,
-    userId
+    user: User
   }) {
     const expiryDate = new Date()
     expiryDate.setDate(expiryDate.getDate() + 3)
 
-    return await this.RefreshTokenModel.updateOne({
-        userId: userId,
-      },
-      {
-        $set: {
-          expiryDate: expiryDate,
-          token: token,
-        },
-      },
-      {
-        upsert: true
-      }
-    )
+    const userTokens = await this.userTokensRepository.createQueryBuilder()
+      .insert()
+      .into(UserTokens)
+      .values({
+        user: user,
+        expiryDate: expiryDate,
+        token: token
+      })
+      .orUpdate(['expiryDate', 'token'], ['userId'])
+      .execute();
+
+    return userTokens
   }
 
   async refreshToken({refreshToken}: RefreshTokensDTO) {
-    const token = await this.RefreshTokenModel.findOneAndDelete({
-      token: refreshToken,
-      expiryDate: {$gte: new Date()}
+    const token = await this.userTokensRepository.findOne({
+      where: {
+        token: refreshToken,
+        expiryDate: MoreThanOrEqual(new Date)
+      },
+      withDeleted: true
     })
 
     if (!token) {
@@ -120,12 +131,18 @@ export class AuthService {
     }
 
     const tokens = await this.generateUserTokens({
-      userId: token.userId
+      userId: token.user.userId
+    })
+
+    const user = await this.userRepository.findOne({
+      where: {
+        userId: token.user.userId
+      }
     })
 
     await this.storeRefreshToken({
       token: tokens.refreshToken,
-      userId: token.userId
+      user: user
     })
 
     return tokens

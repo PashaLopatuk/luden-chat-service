@@ -8,7 +8,10 @@ export class Message {
   id: string
 
   @Column()
-  text: string
+  content: string
+
+  @Column()
+  createdAt: Date;
 
   @OneToOne(() => User)
   author: User

@@ -2,14 +2,15 @@ import {IsString, IsOptional} from "class-validator";
 
 
 export class CreateChatDTO {
+  @IsOptional()
   @IsString()
-  receiver: string
+  receiver?: string
 
   @IsOptional()
   @IsString()
-  title: string
+  title?: string
 
   @IsOptional()
   @IsString()
-  description: string
+  description?: string
 }

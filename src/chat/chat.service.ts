@@ -1,34 +1,118 @@
-import {Inject, Injectable, NotFoundException} from "@nestjs/common";
-import {CreateChatDTO} from "../auth/dto/create-chat.dto";
-import {Repository} from "typeorm";
+import {ForbiddenException, Inject, Injectable, NotFoundException, UnauthorizedException} from "@nestjs/common";
+import {CreateChatDTO} from "./dto/create-chat.dto";
+import {FindOperator, Repository} from "typeorm";
 import {Chat} from "../entities/chat.entity";
-import {InjectModel} from "@nestjs/mongoose";
-import {User} from "../auth/schemas/user.schema";
-import {Model} from "mongoose";
+import {UserTokens} from "../entities/user-tokens.entity";
+import {User} from "../entities/user.entity";
+
 
 @Injectable()
 export class ChatService {
   constructor(
     @Inject('CHAT_REPOSITORY') private chatRepository: Repository<Chat>,
-    @InjectModel(User.name) private UserModel: Model<User>,
-  ) {}
+    @Inject('USER_REPOSITORY') private userRepository: Repository<User>,
+  ) {
+  }
 
-  async createChat({receiver, title, description}: CreateChatDTO, userId) {
-    console.log('userId: ', userId)
+  async createChat(
+    {
+      receiver,
+      title,
+      description
+    }: CreateChatDTO,
+    userId: number
+  ) {
+    let receiverUser;
 
-    const userReceiver = await this.UserModel.findOne({
-      login: receiver
-    })
-
-    if (!userReceiver) {
-      throw new NotFoundException("User not found")
+    if (receiver) {
+      receiverUser = await this.userRepository.findOneBy({
+        login: receiver
+      })
+      if (!receiverUser) {
+        throw new NotFoundException('User not found')
+      }
     }
 
-    const chat = await this.chatRepository.create({
-      createdAt: new Date(),
-      description: description,
-      title: title,
+    const currentUser = await this.userRepository.findOneBy({
+      userId: userId
     })
+
+    const chat = this.chatRepository.create({
+      createdAt: new Date(),
+      title: title,
+      description: description,
+    });
+
+    chat.users = [currentUser]
+
+    if (receiverUser) {
+      chat.users.push(receiverUser)
+    }
+
+    return this.chatRepository.save(chat)
+  }
+
+
+  async getAll(userId: number) {
+    const userChatsRecords = await this.chatRepository.find({
+      where: {
+        users: {
+          userId: userId
+        }
+      },
+    })
+
+    return userChatsRecords
+  }
+
+  async addUserToChat(
+    {
+      hostUserId,
+      chatId,
+      receiverUserNickname,
+    }: {
+      hostUserId: number,
+      receiverUserNickname: string,
+      chatId: number,
+    }) {
+    const hostUser = await this.userRepository.findOneBy({
+      userId: hostUserId
+    })
+
+    const newUser = await this.userRepository.findOneBy({
+      login: receiverUserNickname
+    })
+
+    if (!newUser) {
+      throw new NotFoundException('User not found')
+    }
+
+    const chat = await this.chatRepository.findOne({
+      where: {
+        id: chatId
+      }
+    })
+
+    if (!chat) {
+      throw new NotFoundException('Chat not found')
+    }
+
+    if (!chat.users.includes(hostUser)) {
+      throw new ForbiddenException('You are not in this chat')
+    }
+    chat.users.push(newUser)
+    return this.chatRepository.save(chat)
+  }
+
+  async getOneChat(
+    {userId, chatId}: {chatId: number, userId: number}
+  ) {
+    const user = await this.userRepository.findOneBy({userId: userId})
+    const chat = await this.chatRepository.findOneBy({ users: user, id: chatId })
+
+    if (!chat) {
+      throw new NotFoundException('Chat not found')
+    }
 
     return chat
   }
