@@ -1,12 +1,12 @@
 import {Body, Controller, Get, Param, Post, Req, UseGuards} from "@nestjs/common";
 import {ChatService} from "./chat.service";
 import {CreateChatDTO} from "./dto/create-chat.dto";
-import {AuthGuard} from "../guards/auth.guard";
+import {HttpAuthGuard} from "../guards/http-auth.guard";
 import {IRequest} from "../types/request";
 import {AddUserToChatDto} from "./dto/add-user-to-chat.dto";
 
 
-@UseGuards(AuthGuard)
+@UseGuards(HttpAuthGuard)
 @Controller({
   path: 'chat',
 })

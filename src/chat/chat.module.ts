@@ -5,6 +5,8 @@ import {chatProviders} from "../providers/chat.providers";
 import {ChatController} from "./chat.controller";
 import {ChatService} from "./chat.service";
 import {userProviders} from "../providers/user.providers";
+import {MessageService} from "../message/message.service";
+import {MessageModule} from "../message/message.module";
 
 
 
@@ -17,6 +19,7 @@ import {userProviders} from "../providers/user.providers";
   ],
   imports: [
     DatabaseModule,
+    MessageModule,
   ],
   controllers: [ChatController],
 })

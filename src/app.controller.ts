@@ -1,6 +1,6 @@
 import {Controller, Get, Req, UseGuards} from '@nestjs/common';
 import { AppService } from './app.service';
-import {AuthGuard} from "./guards/auth.guard";
+import {HttpAuthGuard} from "./guards/http-auth.guard";
 
 @Controller({
 
@@ -13,7 +13,7 @@ export class AppController {
     return this.appService.getHello();
   }
 
-  @UseGuards(AuthGuard)
+  @UseGuards(HttpAuthGuard)
   @Get('messages')
   getMessages(@Req() req) {
     console.log('useId: ', req.userId)

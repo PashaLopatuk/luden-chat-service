@@ -4,6 +4,7 @@ import {FindOperator, Repository} from "typeorm";
 import {Chat} from "../entities/chat.entity";
 import {UserTokens} from "../entities/user-tokens.entity";
 import {User} from "../entities/user.entity";
+import {MessageService} from "../message/message.service";
 
 
 @Injectable()
@@ -11,6 +12,7 @@ export class ChatService {
   constructor(
     @Inject('CHAT_REPOSITORY') private chatRepository: Repository<Chat>,
     @Inject('USER_REPOSITORY') private userRepository: Repository<User>,
+    private readonly messageService: MessageService
   ) {
   }
 
@@ -108,12 +110,29 @@ export class ChatService {
     {userId, chatId}: {chatId: number, userId: number}
   ) {
     const user = await this.userRepository.findOneBy({userId: userId})
-    const chat = await this.chatRepository.findOneBy({ users: user, id: chatId })
+    const chat = await this.chatRepository.findOne({
+      where: { id: chatId },
+      relations: ['users']
+    })
 
     if (!chat) {
       throw new NotFoundException('Chat not found')
     }
+    if (!chat.users.some(u => u.userId === userId)) {
+      throw new ForbiddenException('You are not allowed to this chat')
+    }
 
     return chat
+  }
+
+  async userInChat({chatId, userId}: {chatId: number, userId: number}) {
+    const chat = await this.chatRepository.findOneBy({
+      users: {
+        userId: userId
+      },
+      id: chatId
+    })
+
+    return !!chat
   }
 }
