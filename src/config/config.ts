@@ -14,6 +14,6 @@ export default () => ({
   },
   api: {
     mainPort: process.env.MAIN_PORT,
-    wsPort: process.env.WS_PORT
+    wsPort: Number(process.env.WS_PORT)
   }
 })

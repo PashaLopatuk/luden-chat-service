@@ -16,9 +16,11 @@ import {MessageService} from "../message/message.service";
 import {MessageDto} from "../message/dto/message.dto";
 import {validate} from "class-validator";
 import {ChatService} from "./chat.service";
+import config from "../config/config";
 
+const WSPort = (config().api.wsPort)
 
-@WebSocketGateway(8001, {
+@WebSocketGateway(WSPort, {
   cors: {
     origin: '*'
   },
