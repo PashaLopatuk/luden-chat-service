@@ -1,0 +1,35 @@
+services:
+  chat-service:
+    build:
+      dockerfile: Dockerfile
+    ports:
+      - "${MAIN_PORT}:${MAIN_PORT}"
+      - "${WS_PORT}:${WS_PORT}"
+    env_file:
+      - ".env"
+    depends_on:
+      - postgres
+    networks:
+      - luden
+
+  postgres:
+    image: "postgres:alpine"
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_NAME}
+      POSTGRES_USER: ${POSTGRES_USERNAME}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "${POSTGRES_PORT}:${POSTGRES_PORT}"
+    networks:
+      - luden
+    volumes:
+      - luden-backup:/var/lib/postgresql/data
+
+volumes:
+  luden-backup:
+    driver: local
+
+networks:
+  luden:
+    driver: bridge

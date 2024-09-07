@@ -18,13 +18,6 @@ import {DatabaseModule} from "./database/database.module";
       cache: true,
       load: [config]
     }),
-    // MongooseModule.forRootAsync({
-    //   imports: [ConfigModule],
-    //   useFactory: async config => ({
-    //     uri: config.get('mongoDB.connectionString')
-    //   }),
-    //   inject: [ConfigService],
-    // }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async config => ({

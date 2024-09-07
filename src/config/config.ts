@@ -1,13 +1,19 @@
+import 'dotenv'
 import * as process from "node:process";
 
 export default () => ({
   jwt: {
     secret: process.env.JWT_SECRET
   },
-  mongoDB: {
-    connectionString: process.env.MONGODB_CONNECTION_URL
-  },
   postgresDB: {
-    password: process.env.POSTGRES_PASSWORD
+    password: process.env.POSTGRES_PASSWORD,
+    host: process.env.POSTGRES_HOST,
+    username: process.env.POSTGRES_USERNAME,
+    name: process.env.POSTGRES_NAME,
+    port: Number(process.env.POSTGRES_PORT),
+  },
+  api: {
+    mainPort: process.env.MAIN_PORT,
+    wsPort: process.env.WS_PORT
   }
 })
